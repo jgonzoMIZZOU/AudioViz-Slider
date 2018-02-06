@@ -7,15 +7,23 @@ package audioviz;
 
 import java.io.File;
 import java.net.URL;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.ResourceBundle;
+import javafx.beans.InvalidationListener;
+import javafx.beans.Observable;
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
 import javafx.event.ActionEvent;
 import javafx.event.Event;
+import javafx.event.EventHandler;
+import javafx.event.EventType;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.Menu;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.Slider;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.media.Media;
 import javafx.scene.media.MediaPlayer;
@@ -77,6 +85,7 @@ public class PlayerController implements Initializable {
     private ArrayList<Visualizer> visualizers;
     private Visualizer currentVisualizer;
     private final Integer[] bandsList = {1, 2, 4, 8, 16, 20, 40, 60, 100, 120, 140};
+    private static DecimalFormat decimalFormat = new DecimalFormat(".#");
     
     @Override
     public void initialize(URL url, ResourceBundle rb) {
@@ -105,6 +114,16 @@ public class PlayerController implements Initializable {
             });
             bandsMenu.getItems().add(menuItem);
         }
+        
+        // this is not the right way to do this, but it will update everytime the slider changes its value
+//        timeSlider.valueProperty().addListener((ObservableValue<? extends Number> observable, Number oldValue, Number newValue) -> {
+//            System.out.println("Slider Value Changed (newValue: " + newValue.intValue() + ")\n");
+//        });
+        timeSlider.valueProperty().addListener((Observable observable) -> {
+            if (timeSlider.isValueChanging()) {
+                mediaPlayer.seek(Duration.millis(timeSlider.getValue()));
+            }
+        });
     }
     
     private void selectVisualizer(ActionEvent event) {
@@ -165,7 +184,8 @@ public class PlayerController implements Initializable {
     
     private void handleReady() {
         Duration duration = mediaPlayer.getTotalDuration();
-        lengthText.setText(duration.toString());
+//        lengthText.setText(duration.toString());
+        lengthText.setText(decimalFormat.format(duration.toMillis()));
         Duration ct = mediaPlayer.getCurrentTime();
         currentText.setText(ct.toString());
         currentVisualizer.start(numBands, vizPane);
@@ -182,8 +202,19 @@ public class PlayerController implements Initializable {
     private void handleUpdate(double timestamp, double duration, float[] magnitudes, float[] phases) {
         Duration ct = mediaPlayer.getCurrentTime();
         double ms = ct.toMillis();
-        currentText.setText(Double.toString(ms));
+//        currentText.setText(Double.toString(ms));
+        currentText.setText(decimalFormat.format(ms));
         timeSlider.setValue(ms);
+        
+        // Handle Slider value change events.
+//        timeSlider.valueProperty().addListener((observable, oldValue, newValue) -> {
+//            mediaPlayer.seek(Duration.millis(timeSlider.getValue()));
+//            System.out.println("Slider Value Changed (newValue: " + newValue.intValue() + ")");
+//        });
+        
+//        timeSlider.valueChangingProperty().addListener((observable, oldValue, newValue) -> {
+//            System.out.println("Slider Value Changed (newValue: " + newValue.toString() + ")");
+//        });
         
         currentVisualizer.update(timestamp, duration, magnitudes, phases);
     }
